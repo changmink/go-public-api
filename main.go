@@ -2,9 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 )
 
@@ -29,20 +27,39 @@ type Movie struct {
 }
 
 func main() {
-	url := "https://yts.mx/api/v2/list_movies.json?sort_by=like_count&order_by=desc&limit=5"
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Fatal("http call error!")
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal("Get Response Error")
-	}
+	http.HandleFunc("/movies", func(w http.ResponseWriter, req *http.Request) {
+		url := "https://yts.mx/api/v2/list_movies.json?sort_by=like_count&order_by=desc&limit=5"
+		resp, err := http.Get(url)
+		if err != nil {
+			msg := "http call error!"
+			w.Write([]byte(msg))
+			return
+		}
 
-	var response Response
-	if err := json.Unmarshal(body, &response); err != nil {
-		log.Fatal("body parse Error")
-	}
-	fmt.Println(response.Data)
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			msg := "Get Response Error"
+			w.Write([]byte(msg))
+			return
+		}
+
+		var response Response
+		if err := json.Unmarshal(body, &response); err != nil {
+			msg := "body parse Error"
+			w.Write([]byte(msg))
+			return
+		}
+
+		data, err := json.Marshal(response.Data)
+		if err != nil {
+			msg := "convert response Error"
+			w.Write([]byte(msg))
+			return
+		}
+
+		w.Write(data)
+	})
+
+	http.ListenAndServe(":5000", nil)
 }
